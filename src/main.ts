@@ -8,7 +8,7 @@ async function bootstrap() {
 
   // Включаем поддержку CORS
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'https://myumag-client.vercel.app'],
     credentials: true, // Разрешаем передачу cookies и заголовков Authorization
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Разрешенные HTTP-методы
   });
@@ -18,3 +18,4 @@ async function bootstrap() {
   await app.listen(process.env.PORT || 5000);
 }
 bootstrap();
+
