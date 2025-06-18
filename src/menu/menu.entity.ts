@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { OrderItemEntity } from '../orders/ordersItems.entity';
 import { AdminEntity } from '../admin/admin.entity';
-import { SupplyItemEntity } from '../ supply/supplyItemEntity.entity';
+import { SupplyItemEntity } from '../supply/supplyItemEntity.entity';
 
 @Entity('menu')
 export class MenuEntity {

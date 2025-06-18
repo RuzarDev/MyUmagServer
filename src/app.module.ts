@@ -8,7 +8,7 @@ import { MenuModule } from './menu/menu.module';
 import { OrdersModule } from './orders/orders.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
-import { SupplyModule } from './ supply/supply.module';
+import { SupplyModule } from './supply/supply.module';
 import { PosShiftModule } from './posShift/posShift.module';
 import * as dotenv from 'dotenv';
 import * as process from 'node:process';

@@ -6,8 +6,8 @@ import { EmployeesEntity } from './employees/employees.entity';
 import { OrderItemEntity } from './orders/ordersItems.entity';
 import * as dotenv from 'dotenv';
 import { MenuEntity } from './menu/menu.entity';
-import { SupplyEntity } from './ supply/supply.entity';
-import { SupplyItemEntity } from './ supply/supplyItemEntity.entity';
+import { SupplyEntity } from './supply/supply.entity';
+import { SupplyItemEntity } from './supply/supplyItemEntity.entity';
 
 dotenv.config();
 

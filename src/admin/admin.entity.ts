@@ -9,7 +9,7 @@ import { OrdersEntity } from '../orders/orders.entity';
 import { Customer } from '../customers/customer.entity';
 import { EmployeesEntity } from '../employees/employees.entity';
 import { MenuEntity } from '../menu/menu.entity';
-import { SupplyEntity } from '../ supply/supply.entity';
+import { SupplyEntity } from '../supply/supply.entity';
 import { PosShiftEntity } from '../posShift/posShift.entity';
 
 @Entity('admin')
