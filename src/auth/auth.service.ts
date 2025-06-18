@@ -39,9 +39,9 @@ export class AuthService {
 
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Только по HTTPS в продакшене
-      sameSite: 'strict',
-      maxAge: 3600000, // 1 час
+      secure: true,
+      sameSite: 'none',
+      maxAge: 60 * 60 * 1000, // 1 час
     });
 
     return { message: 'Login successful' };
