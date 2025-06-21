@@ -100,7 +100,8 @@ export class OrdersService {
       await this.orderItemsRepository.save(orderItem);
 
       menu.stock -= item.quantity;
-      if (menu.stock < 0) menu.stock = 0;
+      await this.menuRepository.save(menu);
+
 
       await this.menuRepository.save(menu);
     }
