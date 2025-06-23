@@ -1,4 +1,4 @@
-import { TechCardIngredientDto } from './techCardIngredient.dto';
+import { TechCardIngredientDto } from "./techCardIngredient.dto";
 
 export class UpdateTechCardDto {
   id: number;
