@@ -11,6 +11,9 @@ import { EmployeesEntity } from '../employees/employees.entity';
 import { MenuEntity } from '../menu/menu.entity';
 import { SupplyEntity } from '../supply/supply.entity';
 import { PosShiftEntity } from '../posShift/posShift.entity';
+import { IngredientsEntity } from "../ingridients/ingredients.entity";
+import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
+import { TechCardEntity } from "../ingridients/tech_cards.entity";
 
 @Entity('admin')
 export class AdminEntity {
@@ -34,6 +37,12 @@ export class AdminEntity {
   supplys: SupplyEntity[];
   @OneToMany(()=>PosShiftEntity,(posShift) => posShift.admin)
   posShift:PosShiftEntity[];
+  @OneToMany(()=>IngredientsEntity,(ingredients) => ingredients.admin)
+  ingredients: IngredientsEntity[];
+  @OneToMany(()=>TechCardIngredientEntity,(techCard) => techCard.admin)
+  techCardIngredients: TechCardIngredientEntity[];
+  @OneToMany(()=>TechCardEntity,(techCard) => techCard.admin)
+  techCard: TechCardEntity[];
 
 
 }

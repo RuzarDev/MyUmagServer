@@ -10,6 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { SupplyModule } from './supply/supply.module';
 import { PosShiftModule } from './posShift/posShift.module';
+import { ImportModule } from './import/import.module';
+import { IngredientsModule } from './ingridients/ingredients.module';
 import * as dotenv from 'dotenv';
 import * as process from 'node:process';
 dotenv.config()
@@ -33,7 +35,9 @@ dotenv.config()
     AuthModule,
     AdminModule,
     SupplyModule,
-    PosShiftModule
+    PosShiftModule,
+    ImportModule,
+    IngredientsModule
 
   ],
   controllers: [AppController],
