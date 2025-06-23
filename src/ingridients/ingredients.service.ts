@@ -142,5 +142,8 @@ export class IngredientsService {
     // 6. Сохраняем
     return await this.techCardRepository.save(techCard);
   }
-
+  async getTechCards(req){
+    const admin = await this.getAdminFromRequest(req);
+    return  this.techCardRepository.find({where: { admin: { id: admin.id } }})
+  }
 }
