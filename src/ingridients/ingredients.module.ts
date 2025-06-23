@@ -9,7 +9,7 @@ import { AuthModule } from "../auth/auth.module";
 import { AuthService } from "../auth/auth.service";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([IngredientsEntity,TechCardIngredientEntity,TechCardEntity]),AuthModule,AuthService],
+  imports: [TypeOrmModule.forFeature([IngredientsEntity,TechCardIngredientEntity,TechCardEntity]),AuthModule],
   controllers: [IngredientsController],
   providers: [IngredientsService],
 })
