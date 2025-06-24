@@ -8,6 +8,7 @@ import {
 import { OrderItemEntity } from '../orders/ordersItems.entity';
 import { AdminEntity } from '../admin/admin.entity';
 import { SupplyItemEntity } from '../supply/supplyItemEntity.entity';
+import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
 
 @Entity('menu')
 export class MenuEntity {
@@ -34,6 +35,8 @@ export class MenuEntity {
 
   @ManyToOne(() => AdminEntity, (admin) => admin.employees)
   admin: AdminEntity;
+  @OneToMany(() => TechCardIngredientEntity, tci => tci.techCard, { cascade: true })
+  ingredients: TechCardIngredientEntity[];
 
   @OneToMany(() => SupplyItemEntity, (item) => item.menuItem)
   supply: SupplyItemEntity[];

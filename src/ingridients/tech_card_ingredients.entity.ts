@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { IngredientsEntity } from './ingredients.entity';
 import { TechCardEntity } from "./tech_cards.entity";
 import { AdminEntity } from "../admin/admin.entity";
+import { MenuEntity } from "../menu/menu.entity";
 
 @Entity('tech_card_ingredients')
 export class TechCardIngredientEntity {
@@ -11,8 +11,8 @@ export class TechCardIngredientEntity {
   @ManyToOne(() => TechCardEntity, techCard => techCard.ingredients)
   techCard: TechCardEntity;
 
-  @ManyToOne(() => IngredientsEntity)
-  ingredient: IngredientsEntity;
+  @ManyToOne(() => MenuEntity)
+  ingredient: MenuEntity;
 
   @Column({default:0,type:'float'})
 

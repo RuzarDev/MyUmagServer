@@ -16,7 +16,6 @@ export class IngredientsEntity {
   @Column({default:0,type:'float'})
   stock: number;
   @Column({default:0,type:'float'})
-
   cost: number;
 
   @Column({default:0,type:'float'})

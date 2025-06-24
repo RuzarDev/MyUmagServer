@@ -3,4 +3,5 @@ export class MenuDto {
   price: number;
   category: string;
   cost: number;
+  ingredients: []
 }
