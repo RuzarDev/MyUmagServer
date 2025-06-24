@@ -224,7 +224,7 @@ export class OrdersService {
       // Расчет общей суммы
       const totalAmount = techCardItems.reduce((sum, item) => {
         const tc = techCards.find(t => t.id === item.techCardId);
-        return sum + (tc.cost * item.quantity);
+        return sum + (tc.price * item.quantity);
       }, 0);
 
       // Создание заказа
