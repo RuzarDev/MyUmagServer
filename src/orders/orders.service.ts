@@ -205,6 +205,7 @@ export class OrdersService {
         if (!techCard) throw new NotFoundException(`TechCard с ID ${item.techCardId} не найдена`);
 
 
+      }
 
       // Списание остатков
       for (const item of techCardItems) {
