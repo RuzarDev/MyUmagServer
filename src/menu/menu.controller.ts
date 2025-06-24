@@ -19,10 +19,7 @@ export class MenuController {
   create(@Body() dto: MenuDto, @Req() req: Request) {
     return this.menuService.createMenuItem(dto, req);
   }
-  @Post('/update')
-  update(@Body() dto: MenuDto) {
-    return this.menuService.updateMenuItem(dto);
-  }
+
   @Delete(':id')
   deleteMenuItem(@Param('id') id: string,@Req() req: Request) {
     return this.menuService.deleteMenuItem(Number(id),req);
