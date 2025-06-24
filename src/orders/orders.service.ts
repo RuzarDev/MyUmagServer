@@ -19,22 +19,20 @@ import { CreateTechCardOrderDto } from "./dto/createTechCardOrder.dto";
 import { IngredientsEntity } from "../ingridients/ingredients.entity";
 import { TechCardEntity } from "../ingridients/tech_cards.entity";
 import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
+import { DataSource } from 'typeorm';
+
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(OrdersEntity)
     private readonly ordersRepository: Repository<OrdersEntity>,
-
     @InjectRepository(EmployeesEntity)
     private readonly employeesRepository: Repository<EmployeesEntity>,
-
     @InjectRepository(Customer)
     private readonly customersRepository: Repository<Customer>,
-
     @InjectRepository(MenuEntity)
     private readonly menuRepository: Repository<MenuEntity>,
-
     @InjectRepository(OrderItemEntity)
     private readonly orderItemsRepository: Repository<OrderItemEntity>,
     private AuthService: AuthService,
@@ -43,18 +41,18 @@ export class OrdersService {
     private readonly posShiftRepository: Repository<PosShiftEntity>,
     @InjectRepository(TechCardEntity)
     private readonly techCardRepository: Repository<TechCardEntity>,
-
     @InjectRepository(TechCardIngredientEntity)
     private readonly techCardIngredientRepository: Repository<TechCardIngredientEntity>,
-
     @InjectRepository(IngredientsEntity)
     private readonly ingredientsRepository: Repository<IngredientsEntity>,
-  ) {}
+    private readonly dataSource: DataSource,
+  ) {
+  }
 
   // Создание нового заказа
   async create(dto: CreateOrderDto, @Req() req: Request): Promise<OrdersEntity> {
-    const openedShift = await this.posShiftRepository.findOne({where:{isOpen:true}})
-    const { employeeId, customerId, orderDate, totalAmount, menuItems,typeOfPayment } = dto;
+    const openedShift = await this.posShiftRepository.findOne({ where: { isOpen: true } })
+    const { employeeId, customerId, orderDate, totalAmount, menuItems, typeOfPayment } = dto;
 
     // Проверка существования сотрудника и клиента
     const employee = await this.employeesRepository.findOne({ where: { id: employeeId } });
@@ -84,12 +82,12 @@ export class OrdersService {
     });
     const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
     if (!shift) throw new NotFoundException('Смена не найдена');
-    if(typeOfPayment==='cash'){
+    if (typeOfPayment === 'cash') {
       shift.cash += totalAmount;
       shift.cashPool += totalAmount;
-      shift.openedCashDrawer+= totalAmount
-    }else if(typeOfPayment==='card'){
-      shift.card+=totalAmount
+      shift.openedCashDrawer += totalAmount
+    } else if (typeOfPayment === 'card') {
+      shift.card += totalAmount
       shift.cashPool += totalAmount;
     }
 
@@ -167,85 +165,115 @@ export class OrdersService {
     }
     return order;
   }
-  async getOrderByShiftPos(id,req){
+
+  async getOrderByShiftPos(id, req) {
     const bearerToken = req.cookies.access_token;
     const adminToken = await this.AuthService.validateByToken(bearerToken);
-    return  await this.ordersRepository.find({where:{posShiftId:id,admin:adminToken.id}})
+    return await this.ordersRepository.find({ where: { posShiftId: id, admin: adminToken.id } })
 
   }
 
   async createTechCardOrder(dto: CreateTechCardOrderDto, @Req() req: Request): Promise<OrdersEntity> {
-    const { employeeId, customerId, techCardItems, orderDate, typeOfPayment } = dto;
-    const openedShift = await this.posShiftRepository.findOne({ where: { isOpen: true } });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const employee = await this.employeesRepository.findOne({ where: { id: employeeId } });
-    if (!employee) throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    try {
+      const { employeeId, customerId, techCardItems, orderDate, typeOfPayment } = dto;
 
-    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
-    if (!customer) throw new NotFoundException(`Customer with ID ${customerId} not found`);
+      const openedShift = await this.posShiftRepository.findOne({ where: { isOpen: true } });
+      if (!openedShift) throw new NotFoundException('Открытая смена не найдена');
 
-    const bearerToken = req.cookies.access_token;
-    const admin = await this.AuthService.validateByToken(bearerToken);
+      const employee = await this.employeesRepository.findOne({ where: { id: employeeId } });
+      if (!employee) throw new NotFoundException(`Сотрудник с ID ${employeeId} не найден`);
 
-    const techCardIds = techCardItems.map(i => i.techCardId);
-    const techCards = await this.techCardRepository.find({
-      where: { id: In(techCardIds) },
-      relations: ['ingredients', 'ingredients.ingredient'],
-    });
+      const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+      if (!customer) throw new NotFoundException(`Клиент с ID ${customerId} не найден`);
 
-    // Проверка остатков
-    for (const item of techCardItems) {
-      const techCard = techCards.find(tc => tc.id === item.techCardId);
-      for (const tci of techCard.ingredients) {
-        const required = tci.amount * item.quantity;
-        if (tci.ingredient.stock < required) {
-          throw new Error(`Недостаточно ${tci.ingredient.name} для ${techCard.name}`);
+      const bearerToken = req.cookies.access_token;
+      const admin = await this.AuthService.validateByToken(bearerToken);
+
+      const techCardIds = techCardItems.map(i => i.techCardId);
+      const techCards = await this.techCardRepository.find({
+        where: { id: In(techCardIds) },
+        relations: ['ingredients', 'ingredients.ingredient'],
+      });
+
+      // Проверка остатков
+      for (const item of techCardItems) {
+        const techCard = techCards.find(tc => tc.id === item.techCardId);
+        if (!techCard) throw new NotFoundException(`TechCard с ID ${item.techCardId} не найдена`);
+
+        for (const tci of techCard.ingredients) {
+          const required = tci.amount * item.quantity;
+          if (tci.ingredient.stock < required) {
+            throw new Error(`Недостаточно ${tci.ingredient.name} для ${techCard.name}`);
+          }
         }
       }
-    }
 
-    // Списание остатков
-    for (const item of techCardItems) {
-      const techCard = techCards.find(tc => tc.id === item.techCardId);
-      for (const tci of techCard.ingredients) {
-        tci.ingredient.stock -= tci.amount * item.quantity;
-        await this.ingredientsRepository.save(tci.ingredient);
+      // Списание остатков
+      for (const item of techCardItems) {
+        const techCard = techCards.find(tc => tc.id === item.techCardId);
+        for (const tci of techCard.ingredients) {
+          tci.ingredient.stock -= tci.amount * item.quantity;
+          await queryRunner.manager.save(IngredientsEntity, tci.ingredient);
+        }
       }
+
+      // Расчет общей суммы
+      const totalAmount = techCardItems.reduce((sum, item) => {
+        const tc = techCards.find(t => t.id === item.techCardId);
+        return sum + (tc.cost * item.quantity);
+      }, 0);
+
+      // Создание заказа
+      const order = this.ordersRepository.create({
+        employee,
+        customer,
+        orderDate,
+        totalAmount,
+        admin: admin.id,
+        posShiftId: openedShift.id,
+        typeOfPayment,
+      });
+      await queryRunner.manager.save(order);
+
+      // Создание элементов заказа
+      for (const item of techCardItems) {
+        const techCard = techCards.find(tc => tc.id === item.techCardId);
+        const orderItem = this.orderItemsRepository.create({
+          order,
+          techCard,
+          quantity: item.quantity,
+        });
+        await queryRunner.manager.save(orderItem);
+      }
+
+      // Обновление POS-смены
+      const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
+      if (!shift) throw new NotFoundException('Смена не найдена');
+
+      if (typeOfPayment === 'cash') {
+        shift.cash += totalAmount;
+        shift.cashPool += totalAmount;
+        shift.openedCashDrawer += totalAmount;
+      } else {
+        shift.card += totalAmount;
+        shift.cashPool += totalAmount;
+      }
+      await queryRunner.manager.save(shift);
+
+      await queryRunner.commitTransaction();
+      return order;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    // Расчет общей суммы
-    const totalAmount = techCardItems.reduce((sum, item) => {
-      const tc = techCards.find(t => t.id === item.techCardId);
-      return sum + tc.cost * item.quantity;
-    }, 0);
-
-    const order = this.ordersRepository.create({
-      employee,
-      customer,
-      orderDate,
-      totalAmount,
-      admin: admin.id,
-      posShiftId: openedShift.id,
-      typeOfPayment,
-    });
-
-    await this.ordersRepository.save(order);
-
-    // Обновление POS-смены
-    const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
-    if (typeOfPayment === 'cash') {
-      shift.cash += totalAmount;
-      shift.cashPool += totalAmount;
-      shift.openedCashDrawer += totalAmount;
-    } else {
-      shift.card += totalAmount;
-      shift.cashPool += totalAmount;
-    }
-    await this.posShiftRepository.save(shift);
-
-    return order;
   }
+
+
 }
-
-
 
