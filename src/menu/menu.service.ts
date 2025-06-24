@@ -78,7 +78,7 @@ export class MenuService {
         ingredients: techCardIngredients,
       });
 
-      return await this.menuRepository.save(menu);
+      return await this.menuRepository.save(menu
     }
 
     // если нет ингредиентов — простое создание
