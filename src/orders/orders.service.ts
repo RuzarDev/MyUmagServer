@@ -204,13 +204,7 @@ export class OrdersService {
         const techCard = techCards.find(tc => tc.id === item.techCardId);
         if (!techCard) throw new NotFoundException(`TechCard с ID ${item.techCardId} не найдена`);
 
-        for (const tci of techCard.ingredients) {
-          const required = tci.amount * item.quantity;
-          if (tci.ingredient.stock < required) {
-            throw new Error(`Недостаточно ${tci.ingredient.name} для ${techCard.name}`);
-          }
-        }
-      }
+
 
       // Списание остатков
       for (const item of techCardItems) {
