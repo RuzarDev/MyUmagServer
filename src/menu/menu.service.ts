@@ -12,9 +12,9 @@ import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
 import { TechCardEntity } from "../ingridients/tech_cards.entity";
 import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
+import { IngredientsEntity } from "../ingridients/ingredients.entity";
 
-class IngredientEntity {
-}
+
 
 @Injectable()
 export class MenuService {
@@ -22,8 +22,8 @@ export class MenuService {
     @InjectRepository(MenuEntity)
     private readonly menuRepository: Repository<MenuEntity>,
 
-    @InjectRepository(IngredientEntity)
-    private readonly ingredientRepository: Repository<IngredientEntity>,
+    @InjectRepository(IngredientsEntity)
+    private readonly ingredientRepository: Repository<IngredientsEntity>,
 
     @InjectRepository(TechCardEntity)
     private readonly techCardRepository: Repository<TechCardEntity>,
@@ -34,7 +34,7 @@ export class MenuService {
     private readonly AuthService: AuthService,
   ) {}
 
-  async createMenuItem(dto: MenuDto, @Req() req: Request): Promise<MenuEntity | TechCardEntity> {
+  async createMenuItem(dto: MenuDto, @Req() req: Request): Promise<MenuEntity> {
     const token = req.cookies.access_token;
     const admin = await this.AuthService.validateByToken(token);
 
@@ -42,7 +42,7 @@ export class MenuService {
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
     }
 
-    if (dto.ingredients && dto.ingredients.length >= 1) {
+    if (dto.ingredients && dto.ingredients.length > 0) {
       const ingredientIds = dto.ingredients.map(i => i.ingredientId);
       const ingredients = await this.ingredientRepository.findByIds(ingredientIds);
 
@@ -51,17 +51,23 @@ export class MenuService {
       }
 
       let totalCost = 0;
-      const techCardIngredients = dto.ingredients.map(ingredientDto => {
-        const ingredient = ingredients.find(i => i.id === ingredientDto.ingredientId);
-        const cost = ingredient.cost * ingredientDto.quantity;
-        totalCost += cost;
 
-        return this.techCardIngredientRepository.create({
+      const techCardIngredients: TechCardIngredientEntity[] = [];
+
+      for (const ingredientDto of dto.ingredients) {
+        const ingredient = ingredients.find(i => i.id === ingredientDto.ingredientId);
+        if (!ingredient) continue;
+
+        totalCost += ingredient.cost * ingredientDto.quantity;
+
+        const techCardIngredient = this.techCardIngredientRepository.create({
           ingredient,
           amount: ingredientDto.quantity,
           admin,
         });
-      });
+
+        techCardIngredients.push(techCardIngredient);
+      }
 
       const menu = this.menuRepository.create({
         name: dto.name,
@@ -72,19 +78,23 @@ export class MenuService {
         ingredients: techCardIngredients,
       });
 
-      return await this.techCardRepository.save(menu);
+      return await this.menuRepository.save(menu);
     }
 
+    // если нет ингредиентов — простое создание
     const newMenuItem = this.menuRepository.create({
-      ...dto,
+      name: dto.name,
+      category: dto.category,
+      price: dto.price,
+      cost: null,
       admin,
     });
+
     return await this.menuRepository.save(newMenuItem);
   }
 
-  async updateMenuItem(dto: MenuDto): Promise<MenuEntity> {
-    return await this.menuRepository.save(dto);
-  }
+
+
 
   async deleteMenuItem(id: number, @Req() req: Request): Promise<MenuEntity> {
     const token = req.cookies.access_token;
