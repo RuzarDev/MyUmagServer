@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { TechCardEntity } from "./tech_cards.entity";
 import { AdminEntity } from "../admin/admin.entity";
 import { MenuEntity } from "../menu/menu.entity";
 import { IngredientsEntity } from "./ingredients.entity";
