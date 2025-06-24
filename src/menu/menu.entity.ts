@@ -35,7 +35,7 @@ export class MenuEntity {
 
   @ManyToOne(() => AdminEntity, (admin) => admin.employees)
   admin: AdminEntity;
-  @OneToMany(() => TechCardIngredientEntity, tci => tci.menu, { cascade: true,nullable:true })
+  @OneToMany(() => TechCardIngredientEntity, tci => tci.menu, { cascade: true})
   ingredients: TechCardIngredientEntity[];
 
   @OneToMany(() => SupplyItemEntity, (item) => item.menuItem)
