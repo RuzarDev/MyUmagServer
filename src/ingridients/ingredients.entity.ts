@@ -13,12 +13,14 @@ export class IngredientsEntity {
   category: string
   @Column()
   unit: string
-  @Column({default:0})
+  @Column({default:0,type:'float'})
   stock: number;
-  @Column({default: 0})
+  @Column({default:0,type:'float'})
+
   cost: number;
 
-  @Column({default: 0})
+  @Column({default:0,type:'float'})
+
   amount: number;
 
   @ManyToOne(() => AdminEntity, (admin) => admin.ingredients)

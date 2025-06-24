@@ -14,7 +14,8 @@ export class TechCardIngredientEntity {
   @ManyToOne(() => IngredientsEntity)
   ingredient: IngredientsEntity;
 
-  @Column()
+  @Column({default:0,type:'float'})
+
   amount: number;
 
   @ManyToOne(() => AdminEntity, (admin) => admin.techCardIngredients)

@@ -11,7 +11,8 @@ export class TechCardEntity {
   name: string; // например, "Капучино 250мл"
   @Column()
   category: string;
-  @Column()
+  @Column({default:0,type:'float'})
+
   cost: number
 
   @OneToMany(() => TechCardIngredientEntity, tci => tci.techCard, { cascade: true })
