@@ -17,7 +17,6 @@ import { PosShiftService } from '../posShift/posShift.service';
 import { PosShiftEntity } from '../posShift/posShift.entity';
 import { CreateTechCardOrderDto } from "./dto/createTechCardOrder.dto";
 import { IngredientsEntity } from "../ingridients/ingredients.entity";
-import { TechCardEntity } from "../ingridients/tech_cards.entity";
 import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
 import { DataSource } from 'typeorm';
 
@@ -39,8 +38,6 @@ export class OrdersService {
     private posShiftService: PosShiftService,
     @InjectRepository(PosShiftEntity)
     private readonly posShiftRepository: Repository<PosShiftEntity>,
-    @InjectRepository(TechCardEntity)
-    private readonly techCardRepository: Repository<TechCardEntity>,
     @InjectRepository(TechCardIngredientEntity)
     private readonly techCardIngredientRepository: Repository<TechCardIngredientEntity>,
     @InjectRepository(IngredientsEntity)
@@ -49,79 +46,7 @@ export class OrdersService {
   ) {
   }
 
-  // Создание нового заказа
-  async create(dto: CreateOrderDto, @Req() req: Request): Promise<OrdersEntity> {
-    const openedShift = await this.posShiftRepository.findOne({ where: { isOpen: true } })
-    const { employeeId, customerId, orderDate, totalAmount, menuItems, typeOfPayment } = dto;
 
-    // Проверка существования сотрудника и клиента
-    const employee = await this.employeesRepository.findOne({ where: { id: employeeId } });
-    if (!employee) {
-      throw new NotFoundException(`Employee with ID ${employeeId} not found`);
-    }
-
-    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
-    if (!customer) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found`);
-    }
-
-
-    // Создаем новый заказ
-    const bearerToken = req.cookies.access_token;
-    const adminToken = await this.AuthService.validateByToken(bearerToken);
-    const newOrder = this.ordersRepository.create({
-      employee,
-      customer,
-      orderDate,
-      totalAmount,
-      admin: adminToken.id,
-      posShiftId: openedShift.id,
-      typeOfPayment
-
-
-    });
-    const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
-    if (!shift) throw new NotFoundException('Смена не найдена');
-    if (typeOfPayment === 'cash') {
-      shift.cash += totalAmount;
-      shift.cashPool += totalAmount;
-      shift.openedCashDrawer += totalAmount
-    } else if (typeOfPayment === 'card') {
-      shift.card += totalAmount
-      shift.cashPool += totalAmount;
-    }
-
-    await this.posShiftRepository.save(shift);
-
-    // Сохраняем заказ
-    await this.ordersRepository.save(newOrder);
-
-    // Добавляем элементы заказа
-    for (const item of menuItems) {
-      const menu = await this.menuRepository.findOne({ where: { id: item.menuId } });
-      if (!menu) {
-        throw new NotFoundException(`Menu item with ID ${item.menuId} not found`);
-      }
-
-      const orderItem = this.orderItemsRepository.create({
-        order: newOrder,
-        menu: menu,
-        quantity: item.quantity,
-      });
-
-      await this.orderItemsRepository.save(orderItem);
-
-      menu.stock -= item.quantity;
-      await this.menuRepository.save(menu);
-
-
-      await this.menuRepository.save(menu);
-    }
-
-    return newOrder;
-  }
-
-  // Удаление заказа
   async delete(id: number): Promise<OrdersEntity> {
     const order = await this.ordersRepository.findOne({ where: { id: id } });
     if (!order) {
@@ -193,33 +118,27 @@ export class OrdersService {
       const bearerToken = req.cookies.access_token;
       const admin = await this.AuthService.validateByToken(bearerToken);
 
-      const techCardIds = techCardItems.map(i => i.techCardId);
-      const techCards = await this.techCardRepository.find({
-        where: { id: In(techCardIds) },
-        relations: ['ingredients', 'ingredients.ingredient'],
+      const techCardIds = techCardItems.map(item => item.techCardId);
+      const techCards = await this.menuRepository.find({
+        where: { id: In(techCardIds), admin: { id: admin.id } },
+        relations: ['ingredients', 'ingredients.ingredient'], // загружаем техкарту и её ингридиенты
       });
-
-      // Проверка остатков
-      for (const item of techCardItems) {
-        const techCard = techCards.find(tc => tc.id === item.techCardId);
-        if (!techCard) throw new NotFoundException(`TechCard с ID ${item.techCardId} не найдена`);
-
-
-      }
 
       // Списание остатков
       for (const item of techCardItems) {
         const techCard = techCards.find(tc => tc.id === item.techCardId);
+        if (!techCard) throw new NotFoundException(`Tech card with ID ${item.techCardId} not found`);
+
         for (const tci of techCard.ingredients) {
           tci.ingredient.stock -= tci.amount * item.quantity;
           await queryRunner.manager.save(IngredientsEntity, tci.ingredient);
         }
       }
 
-      // Расчет общей суммы
+      // Расчёт общей суммы
       const totalAmount = techCardItems.reduce((sum, item) => {
-        const tc = techCards.find(t => t.id === item.techCardId);
-        return sum + (tc.price * item.quantity);
+        const techCard = techCards.find(tc => tc.id === item.techCardId);
+        return sum + (techCard.price * item.quantity);
       }, 0);
 
       // Создание заказа
@@ -239,25 +158,22 @@ export class OrdersService {
         const techCard = techCards.find(tc => tc.id === item.techCardId);
         const orderItem = this.orderItemsRepository.create({
           order,
-          techCard,
+          menu: techCard,
           quantity: item.quantity,
         });
         await queryRunner.manager.save(orderItem);
       }
 
       // Обновление POS-смены
-      const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
-      if (!shift) throw new NotFoundException('Смена не найдена');
-
       if (typeOfPayment === 'cash') {
-        shift.cash += totalAmount;
-        shift.cashPool += totalAmount;
-        shift.openedCashDrawer += totalAmount;
+        openedShift.cash += totalAmount;
+        openedShift.cashPool += totalAmount;
+        openedShift.openedCashDrawer += totalAmount;
       } else {
-        shift.card += totalAmount;
-        shift.cashPool += totalAmount;
+        openedShift.card += totalAmount;
+        openedShift.cashPool += totalAmount;
       }
-      await queryRunner.manager.save(shift);
+      await queryRunner.manager.save(openedShift);
 
       await queryRunner.commitTransaction();
       return order;
@@ -268,6 +184,7 @@ export class OrdersService {
       await queryRunner.release();
     }
   }
+
 
 
 }

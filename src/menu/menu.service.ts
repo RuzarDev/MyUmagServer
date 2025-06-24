@@ -10,7 +10,6 @@ import { Repository } from 'typeorm';
 import { MenuDto } from './dto/menu.dto';
 import { AuthService } from '../auth/auth.service';
 import { Request } from 'express';
-import { TechCardEntity } from "../ingridients/tech_cards.entity";
 import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
 import { IngredientsEntity } from "../ingridients/ingredients.entity";
 
@@ -25,8 +24,6 @@ export class MenuService {
     @InjectRepository(IngredientsEntity)
     private readonly ingredientRepository: Repository<IngredientsEntity>,
 
-    @InjectRepository(TechCardEntity)
-    private readonly techCardRepository: Repository<TechCardEntity>,
 
     @InjectRepository(TechCardIngredientEntity)
     private readonly techCardIngredientRepository: Repository<TechCardIngredientEntity>,
@@ -42,6 +39,7 @@ export class MenuService {
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
     }
 
+    // Если есть ингредиенты — создаём техкарту
     if (dto.ingredients && dto.ingredients.length > 0) {
       const ingredientIds = dto.ingredients.map(i => i.ingredientId);
       const ingredients = await this.ingredientRepository.findByIds(ingredientIds);
@@ -52,41 +50,50 @@ export class MenuService {
 
       let totalCost = 0;
 
+      // 1. Создаём блюдо без ингредиентов
+      const menu = this.menuRepository.create({
+        name: dto.name,
+        category: dto.category,
+        cost: dto.cost,
+        price: dto.price,
+        admin,
+      });
+      const savedMenu = await this.menuRepository.save(menu);
+
+      // 2. Создаём записи техкарты
       const techCardIngredients: TechCardIngredientEntity[] = [];
 
       for (const ingredientDto of dto.ingredients) {
         const ingredient = ingredients.find(i => i.id === ingredientDto.ingredientId);
         if (!ingredient) continue;
 
-        totalCost += ingredient.cost * ingredientDto.quantity;
+        const cost = ingredient.cost * ingredientDto.quantity;
+        totalCost += cost;
 
         const techCardIngredient = this.techCardIngredientRepository.create({
           ingredient,
           amount: ingredientDto.quantity,
           admin,
+          menu: savedMenu, // ВАЖНО: привязка к меню
         });
 
         techCardIngredients.push(techCardIngredient);
       }
 
-      const menu = this.menuRepository.create({
-        name: dto.name,
-        category: dto.category,
-        cost: totalCost,
-        price: dto.price,
-        admin,
-        ingredients: techCardIngredients,
-      });
+      // 3. Сохраняем все записи техкарты
+      await this.techCardIngredientRepository.save(techCardIngredients);
 
-      return await this.menuRepository.save(menu);
+      // 4. Обновляем себестоимость блюда
+      savedMenu.cost = totalCost;
+      return await this.menuRepository.save(savedMenu);
     }
 
-    // если нет ингредиентов — простое создание
+    // Если ингредиентов нет — обычное сохранение
     const newMenuItem = this.menuRepository.create({
       name: dto.name,
       category: dto.category,
       price: dto.price,
-      cost: null,
+      cost: dto.cost,
       admin,
     });
 

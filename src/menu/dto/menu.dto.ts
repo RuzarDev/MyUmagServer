@@ -18,6 +18,8 @@ export class MenuDto {
 
   @IsNumber()
   price: number;
+  @IsNumber()
+  cost: number;
 
   @IsOptional()
   @IsArray()

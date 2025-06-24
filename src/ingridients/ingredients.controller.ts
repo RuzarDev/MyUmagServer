@@ -32,17 +32,8 @@ export class IngredientsController {
     return this.ingredientsService.getIngredients(req);
   }
 
-  @Post('tech-card')
-  createTechCard(@Req() req: Request, @Body() dto: CreateTechCardDto) {
-    return this.ingredientsService.CreateTechCard(req, dto);
-  }
 
-  @Put('tech-card')
-  updateTechCard(@Req() req: Request, @Body() dto: UpdateTechCardDto) {
-    return this.ingredientsService.UpdateTechCard(req, dto);
-  }
-  @Get('tech-card')
-  getTechCard(@Req() req: Request) {
-  return this.ingredientsService.getTechCards(req)
-  }
+
+
+
 }

@@ -14,7 +14,6 @@ import { AuthModule } from "../auth/auth.module";
 import { PosShiftEntity } from '../posShift/posShift.entity';
 import { PosShiftModule } from '../posShift/posShift.module';
 import { IngredientsModule } from "../ingridients/ingredients.module";
-import { TechCardEntity } from "../ingridients/tech_cards.entity";
 import { IngredientsEntity } from "../ingridients/ingredients.entity";
 import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
 
@@ -28,7 +27,6 @@ import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.e
       OrderItemEntity,
       OrderItemEntity,
       PosShiftEntity,
-      TechCardEntity,
       IngredientsEntity,
       TechCardIngredientEntity
     ]),

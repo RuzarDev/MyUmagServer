@@ -10,10 +10,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {
   }
 
-  @Post()
-  CreateOrder(@Body() dto: CreateOrderDto,@Req() req: Request): Promise<any> {
-    return this.ordersService.create(dto, req);
-  }
+
   @Get()
   getOrdersByToken(@Req() req: Request): Promise<any> {
     return this.ordersService.findAll(req)
