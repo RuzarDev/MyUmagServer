@@ -88,6 +88,7 @@ export class IngredientsService {
       name: dto.name,
       category: dto.category,
       cost: totalCost,
+      price: dto.price,
       admin,
       ingredients: techCardIngredients,
     });

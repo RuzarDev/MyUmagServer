@@ -13,6 +13,7 @@ import { OrderItemEntity } from "./ordersItems.entity";
 import { AuthModule } from "../auth/auth.module";
 import { PosShiftEntity } from '../posShift/posShift.entity';
 import { PosShiftModule } from '../posShift/posShift.module';
+import { IngredientsModule } from "../ingridients/ingredients.module";
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { PosShiftModule } from '../posShift/posShift.module';
     CustomersModule,
     MenuModule,
     AuthModule,
-    PosShiftModule
+    PosShiftModule,
+    IngredientsModule
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

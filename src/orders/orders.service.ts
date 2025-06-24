@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { In } from 'typeorm';
+
 import { OrdersEntity } from './orders.entity';
 import { EmployeesEntity } from '../employees/employees.entity';
 import { MenuEntity } from '../menu/menu.entity';
@@ -13,6 +15,10 @@ import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { PosShiftService } from '../posShift/posShift.service';
 import { PosShiftEntity } from '../posShift/posShift.entity';
+import { CreateTechCardOrderDto } from "./dto/createTechCardOrder.dto";
+import { IngredientsEntity } from "../ingridients/ingredients.entity";
+import { TechCardEntity } from "../ingridients/tech_cards.entity";
+import { TechCardIngredientEntity } from "../ingridients/tech_card_ingredients.entity";
 
 @Injectable()
 export class OrdersService {
@@ -35,6 +41,14 @@ export class OrdersService {
     private posShiftService: PosShiftService,
     @InjectRepository(PosShiftEntity)
     private readonly posShiftRepository: Repository<PosShiftEntity>,
+    @InjectRepository(TechCardEntity)
+    private readonly techCardRepository: Repository<TechCardEntity>,
+
+    @InjectRepository(TechCardIngredientEntity)
+    private readonly techCardIngredientRepository: Repository<TechCardIngredientEntity>,
+
+    @InjectRepository(IngredientsEntity)
+    private readonly ingredientsRepository: Repository<IngredientsEntity>,
   ) {}
 
   // Создание нового заказа
@@ -160,6 +174,78 @@ export class OrdersService {
 
   }
 
+  async createTechCardOrder(dto: CreateTechCardOrderDto, @Req() req: Request): Promise<OrdersEntity> {
+    const { employeeId, customerId, techCardItems, orderDate, typeOfPayment } = dto;
+    const openedShift = await this.posShiftRepository.findOne({ where: { isOpen: true } });
 
+    const employee = await this.employeesRepository.findOne({ where: { id: employeeId } });
+    if (!employee) throw new NotFoundException(`Employee with ID ${employeeId} not found`);
 
+    const customer = await this.customersRepository.findOne({ where: { id: customerId } });
+    if (!customer) throw new NotFoundException(`Customer with ID ${customerId} not found`);
+
+    const bearerToken = req.cookies.access_token;
+    const admin = await this.AuthService.validateByToken(bearerToken);
+
+    const techCardIds = techCardItems.map(i => i.techCardId);
+    const techCards = await this.techCardRepository.find({
+      where: { id: In(techCardIds) },
+      relations: ['ingredients', 'ingredients.ingredient'],
+    });
+
+    // Проверка остатков
+    for (const item of techCardItems) {
+      const techCard = techCards.find(tc => tc.id === item.techCardId);
+      for (const tci of techCard.ingredients) {
+        const required = tci.amount * item.quantity;
+        if (tci.ingredient.stock < required) {
+          throw new Error(`Недостаточно ${tci.ingredient.name} для ${techCard.name}`);
+        }
+      }
+    }
+
+    // Списание остатков
+    for (const item of techCardItems) {
+      const techCard = techCards.find(tc => tc.id === item.techCardId);
+      for (const tci of techCard.ingredients) {
+        tci.ingredient.stock -= tci.amount * item.quantity;
+        await this.ingredientsRepository.save(tci.ingredient);
+      }
+    }
+
+    // Расчет общей суммы
+    const totalAmount = techCardItems.reduce((sum, item) => {
+      const tc = techCards.find(t => t.id === item.techCardId);
+      return sum + tc.cost * item.quantity;
+    }, 0);
+
+    const order = this.ordersRepository.create({
+      employee,
+      customer,
+      orderDate,
+      totalAmount,
+      admin: admin.id,
+      posShiftId: openedShift.id,
+      typeOfPayment,
+    });
+
+    await this.ordersRepository.save(order);
+
+    // Обновление POS-смены
+    const shift = await this.posShiftRepository.findOneBy({ id: openedShift.id });
+    if (typeOfPayment === 'cash') {
+      shift.cash += totalAmount;
+      shift.cashPool += totalAmount;
+      shift.openedCashDrawer += totalAmount;
+    } else {
+      shift.card += totalAmount;
+      shift.cashPool += totalAmount;
+    }
+    await this.posShiftRepository.save(shift);
+
+    return order;
+  }
 }
+
+
+

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Param, Post, Req, UseGuards } from '@ne
 import { CreateOrderDto } from './dto/orders.dto';
 import { OrdersService } from './orders.service';
 import {Request} from 'express';
+import { CreateTechCardOrderDto } from "./dto/createTechCardOrder.dto";
 
 @Controller('order')
 
@@ -21,6 +22,11 @@ export class OrdersController {
   getOrderByShiftPos(@Param('id') id, @Req() req: Request){
     return this.ordersService.getOrderByShiftPos(id,req)
   }
+
+  @Post('tech-card-order')
+  createTechCardOrder(@Body() dto: CreateTechCardOrderDto, @Req() req: Request) {
+  return this.ordersService.createTechCardOrder(dto, req);
+}
 
 
 

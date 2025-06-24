@@ -8,6 +8,7 @@ export class ingredientsDto {
 export class CreateTechCardDto {
   name: string
   category: string
+  price: number
   ingredients: ingredientsDto[]
 
 }
