@@ -142,7 +142,9 @@ export class MenuService {
           id: admin.id,
         },
       },
+      relations: ['ingredients', 'ingredients.ingredient'],
     });
+
   }
 
   async findOne(id: number): Promise<MenuEntity> {
